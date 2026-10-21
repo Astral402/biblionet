@@ -19,11 +19,11 @@ CREATE TABLE users (
 
 CREATE TABLE livres (
     id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    titre           VARCHAR(200) NOT NULL,
+    titre           VARCHAR(255) NOT NULL,
     auteur          VARCHAR(150) NOT NULL,
-    categorie       VARCHAR(80)  NOT NULL,
+    categorie       VARCHAR(100)  NOT NULL,
     annee           SMALLINT UNSIGNED NULL,
-    nb_exemplaires  INT UNSIGNED NOT NULL DEFAULT 1,
+    nb_exemplaires  INT NOT NULL DEFAULT 1,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

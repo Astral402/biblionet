@@ -1,62 +1,49 @@
-<div class="p-4 mb-4 bg-body-tertiary rounded-3">
-    <h1 class="display-6 fw-bold">Bienvenue à la bibliothèque de l'INPTIC</h1>
-    <p class="lead mb-0">
-        Consultez le catalogue des ouvrages et vérifiez leur disponibilité en ligne.
-    </p>
-</div>
+<?php $e = fn($valeur) => htmlspecialchars((string) $valeur, ENT_QUOTES, 'UTF-8'); ?>
+<h1 class="h3 mb-4">Catalogue de la bibliothèque</h1>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card text-center h-100"><div class="card-body">
-            <div class="display-6"><?= $this->e($nbLivres) ?></div>
-            <div class="text-muted">Livres au catalogue</div>
-        </div></div>
+<form id="search-form" action="<?= $e($this->url('catalogue')) ?>" data-search-url="<?= $e($this->url('catalogue/search')) ?>" method="get" class="row g-2 mb-4" role="search">
+    <div class="col-sm-9 col-md-10">
+        <input type="search" id="search-input" name="q" class="form-control"
+               placeholder="Rechercher par titre ou auteur" value="<?= $e($recherche) ?>" autocomplete="off">
     </div>
-    <div class="col-md-4">
-        <div class="card text-center h-100"><div class="card-body">
-            <div class="display-6"><?= $this->e($nbAdherents) ?></div>
-            <div class="text-muted">Adhérents</div>
-        </div></div>
+    <div class="col-sm-3 col-md-2 d-grid">
+        <button type="submit" class="btn btn-primary">Rechercher</button>
     </div>
-    <div class="col-md-4">
-        <div class="card text-center h-100"><div class="card-body">
-            <div class="display-6"><?= $this->e($nbEnCours) ?></div>
-            <div class="text-muted">Emprunts en cours</div>
-        </div></div>
-    </div>
-</div>
+</form>
 
-<h2 class="h4 mb-3">Catalogue</h2>
 <div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <thead class="table-light">
+    <table class="table table-striped table-hover align-middle">
+        <thead>
             <tr>
                 <th>Titre</th>
                 <th>Auteur</th>
                 <th>Catégorie</th>
                 <th>Année</th>
-                <th>Disponibilité</th>
+                <th>Statut</th>
             </tr>
         </thead>
-        <tbody>
-        <?php if (empty($livres)): ?>
-            <tr><td colspan="5" class="text-center text-muted">Aucun livre pour le moment.</td></tr>
-        <?php endif; ?>
-        <?php foreach ($livres as $livre): ?>
-            <tr>
-                <td><?= $this->e($livre['titre']) ?></td>
-                <td><?= $this->e($livre['auteur']) ?></td>
-                <td><?= $this->e($livre['categorie']) ?></td>
-                <td><?= $this->e($livre['annee']) ?></td>
-                <td>
-                    <?php if ((int) $livre['disponibles'] > 0): ?>
-                        <span class="badge text-bg-success">Disponible</span>
-                    <?php else: ?>
-                        <span class="badge text-bg-danger">Indisponible</span>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
+        <tbody id="catalogue-body">
+            <?php foreach ($livres as $livre): ?>
+                <tr>
+                    <td><?= $e($livre['titre']) ?></td>
+                    <td><?= $e($livre['auteur']) ?></td>
+                    <td><?= $e($livre['categorie']) ?></td>
+                    <td><?= $e($livre['annee']) ?></td>
+                    <td>
+                        <?php if ((int) $livre['disponibles'] > 0): ?>
+                            <span class="badge bg-success">Disponible</span>
+                        <?php else: ?>
+                            <span class="badge bg-danger">Indisponible</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
         </tbody>
     </table>
 </div>
+
+<p id="catalogue-empty" class="text-center text-muted py-4<?= empty($livres) ? '' : ' d-none' ?>">
+    Aucun livre ne correspond à votre recherche.
+</p>
+
+<script src="<?= $e($this->url('assets/js/catalogue.js')) ?>"></script>

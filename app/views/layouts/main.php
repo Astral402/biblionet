@@ -19,11 +19,20 @@
         <div class="collapse navbar-collapse" id="menu">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="<?= $this->url() ?>">Catalogue</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= $this->url('livres') ?>">Livres</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= $this->url('adherents') ?>">Adhérents</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= $this->url('emprunts') ?>">Emprunts</a></li>
+                <?php if ($this->estConnecte()): ?>
+                    <li class="nav-item"><a class="nav-link" href="<?= $this->url('livres') ?>">Livres</a></li>
+                    <li class="nav-item"><a class="nav-link" href="<?= $this->url('adherents') ?>">Adhérents</a></li>
+                    <li class="nav-item"><a class="nav-link" href="<?= $this->url('emprunts') ?>">Emprunts</a></li>
+                <?php endif; ?>
             </ul>
-            <a class="btn btn-light btn-sm" href="<?= $this->url('auth') ?>">Connexion</a>
+            <?php if ($this->estConnecte()): ?>
+                <span class="navbar-text text-white me-3"><?= $this->e($_SESSION['user_nom'] ?? '') ?></span>
+                <form action="<?= $this->url('logout') ?>" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-light btn-sm">Déconnexion</button>
+                </form>
+            <?php else: ?>
+                <a class="btn btn-light btn-sm" href="<?= $this->url('login') ?>">Connexion</a>
+            <?php endif; ?>
         </div>
     </div>
 </nav>

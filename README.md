@@ -10,13 +10,13 @@ Mini-projet — Module Développement web (PHP / MySQL) — Enseignant : Charly 
 | Jour | Contenu | État |
 |------|---------|------|
 | J1 | Socle MVC (Router, Database, Controller, layout), base + données de test, page d'accueil | ✅ |
-| J2 | Authentification, CRUD livres, CRUD adhérents | ⏳ |
-| J3 | Catalogue + recherche, emprunts/retours, mise en ligne | ⏳ |
+| J2 | Authentification, CRUD livres, CRUD adhérents | ✅ |
+| J3 | Catalogue + recherche ✅ (fait en avance), emprunts/retours ⏳, mise en ligne ⏳ | ⏳ |
 | J4 | Finalisation, rapport, soutenance | ⏳ |
 
 ## Installation locale
 
-**Prérequis** : PHP 8.x (extension `pdo_mysql`), MySQL ou MariaDB (XAMPP / WAMP / Laragon conviennent).
+**Prérequis** : PHP 8.x (extensions `pdo_mysql` et `mbstring`), MySQL ou MariaDB (XAMPP / WAMP / Laragon conviennent).
 
 1. **Cloner le dépôt**
    ```bash
@@ -41,10 +41,20 @@ Mini-projet — Module Développement web (PHP / MySQL) — Enseignant : Charly 
    Avec Apache (XAMPP/WAMP), placer le projet dans `htdocs`/`www` et ouvrir
    `http://localhost/biblionet/public/` (`mod_rewrite` activé).
 
-## Compte de démonstration (disponible à partir de J2)
+## Compte de démonstration
 
 - Email : `bibliothecaire@inptic.ga`
 - Mot de passe : `Biblio@2026`
+
+## Routes
+
+| URL | Accès | Rôle |
+|-----|-------|------|
+| `/` et `/catalogue` | public | Catalogue, recherche par titre ou auteur (`/catalogue/search?q=` en JSON) |
+| `/login`, `/logout` | public | Connexion / déconnexion du bibliothécaire |
+| `/livres`, `/livres/create`, `/livres/edit/{id}` | connecté | CRUD des livres |
+| `/adherents`, `/adherents/create`, `/adherents/edit/{id}` | connecté | CRUD des adhérents |
+| `/emprunts` | connecté | À développer (J3) |
 
 ## Architecture
 
@@ -54,7 +64,7 @@ biblionet/
 │   ├── controllers/   AuthController, LivreController, AdherentController,
 │   │                  EmpruntController, CatalogueController
 │   ├── models/        User, Livre, Adherent, Emprunt
-│   ├── views/         layouts/main.php, livres/, adherents/, emprunts/, catalogue/
+│   ├── views/         layouts/main.php, auth/, livres/, adherents/, emprunts/, catalogue/
 │   └── core/          Router, Controller, Database
 ├── config/config.php  paramètres lus depuis .env
 ├── public/            SEUL dossier exposé au web (index.php = front controller)

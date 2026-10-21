@@ -10,6 +10,11 @@ class Database
         self::$config = $config;
     }
 
+    public static function getConnection(): PDO
+    {
+        return self::pdo();
+    }
+
     public static function pdo(): PDO
     {
         if (self::$pdo === null) {

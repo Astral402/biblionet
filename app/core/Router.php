@@ -9,6 +9,13 @@ class Router
         'livres'    => 'LivreController',
         'adherents' => 'AdherentController',
         'emprunts'  => 'EmpruntController',
+        'login'     => 'AuthController',
+        'logout'    => 'AuthController',
+    ];
+
+    private const METHODES_ALIAS = [
+        'login'  => 'login',
+        'logout' => 'logout',
     ];
 
     public function dispatch(): void
@@ -18,6 +25,15 @@ class Router
         $cle     = strtolower(array_shift($segments) ?? '');
         $methode = strtolower(array_shift($segments) ?? 'index');
         $params  = $segments;
+
+        if (isset(self::METHODES_ALIAS[$cle])) {
+            if ($methode !== 'index' || $params) {
+                $this->notFound();
+                return;
+            }
+
+            $methode = self::METHODES_ALIAS[$cle];
+        }
 
         if (!isset(self::ROUTES[$cle])) {
             $this->notFound();
@@ -32,7 +48,7 @@ class Router
         }
 
         $reflexion = new ReflectionMethod($classe, $methode);
-        if (!$reflexion->isPublic() || count($params) < $reflexion->getNumberOfRequiredParameters()) {
+        if (!$reflexion->isPublic() || $reflexion->getDeclaringClass()->getName() !== $classe || count($params) < $reflexion->getNumberOfRequiredParameters()) {
             $this->notFound();
             return;
         }
