@@ -2,55 +2,75 @@
 
 class AuthController extends Controller
 {
-    public function index(): void
-    {
-        $this->to('/login');
-    }
+    private const MAX_ECHECS = 5;
+    private const BLOCAGE_SECONDES = 30;
 
     public function login(): void
     {
-        if ($this->estConnecte()) {
-            $this->to('/livres');
+        if (!empty($_SESSION['user'])) {
+            $this->redirect(admin_home());
         }
 
         $email = '';
-        $erreur = null;
+        $error = null;
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $email = trim($_POST['email'] ?? '');
-            $motDePasse = (string) ($_POST['password'] ?? '');
+            $this->requirePost();
 
-            $user = ($email !== '' && $motDePasse !== '') ? User::authenticate($email, $motDePasse) : null;
+            $email = field($_POST, 'email');
+            $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
-            if ($user !== null) {
-                session_regenerate_id(true);
-                $_SESSION['user_id'] = (int) $user['id'];
-                $_SESSION['user_nom'] = $user['nom'];
-                $this->to('/livres');
+            if ($this->attente() === 0) {
+                $user = ($email !== '' && $password !== '') ? User::findByEmail($email) : null;
+
+                if ($user !== null && password_verify($password, $user['password'])) {
+                    session_regenerate_id(true);
+                    unset($_SESSION['login_echecs'], $_SESSION['login_bloque_jusqua']);
+                    $_SESSION['user'] = ['id' => (int) $user['id'], 'nom' => $user['nom'], 'email' => $user['email']];
+                    $this->flash('success', 'Bienvenue, ' . $user['nom'] . ' !');
+                    $this->redirect(admin_home());
+                }
+
+                $this->enregistrerEchec();
+                $error = 'Email ou mot de passe incorrect.';
             }
-
-            $erreur = 'Email ou mot de passe incorrect.';
         }
 
-        $this->render('auth/login', [
-            'titre' => 'Connexion',
-            'email' => $email,
-            'erreur' => $erreur,
-        ]);
+        $attente = $this->attente();
+
+        if ($attente > 0) {
+            $error = 'Trop de tentatives échouées. Réessayez dans ' . $attente . ' seconde' . ($attente > 1 ? 's' : '') . '.';
+        }
+
+        $this->render('auth/login', ['title' => 'Connexion', 'error' => $error, 'email' => $email]);
     }
 
     public function logout(): void
     {
-        $this->requirePost('/');
+        $this->requirePost();
 
         $_SESSION = [];
+        session_destroy();
+        session_start();
 
-        if (ini_get('session.use_cookies')) {
-            $p = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+        $this->flash('info', 'Vous êtes déconnecté.');
+        $this->redirect('catalogue');
+    }
+
+    private function attente(): int
+    {
+        return max(0, (int) ($_SESSION['login_bloque_jusqua'] ?? 0) - time());
+    }
+
+    private function enregistrerEchec(): void
+    {
+        $echecs = (int) ($_SESSION['login_echecs'] ?? 0) + 1;
+
+        if ($echecs >= self::MAX_ECHECS) {
+            $_SESSION['login_bloque_jusqua'] = time() + self::BLOCAGE_SECONDES;
+            $echecs = 0;
         }
 
-        session_destroy();
-        $this->to('/');
+        $_SESSION['login_echecs'] = $echecs;
     }
 }

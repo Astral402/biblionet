@@ -1,0 +1,7 @@
+RewriteEngine On
+RewriteRule ^$ public/ [L]
+RewriteRule ^(?!public/)(.*)$ public/$1 [L]
+
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>

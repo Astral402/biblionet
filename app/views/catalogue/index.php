@@ -1,49 +1,56 @@
-<?php $e = fn($valeur) => htmlspecialchars((string) $valeur, ENT_QUOTES, 'UTF-8'); ?>
-<h1 class="h3 mb-4">Catalogue de la bibliothèque</h1>
+<section class="hero" id="recherche">
+  <h1>Catalogue de la bibliothèque de l'INPTIC</h1>
+  <p>Consultez les ouvrages et leur disponibilité.</p>
+  <form class="hero-search" method="get" action="<?= e(url('catalogue')) ?>">
+    <input name="q" value="<?= e($q) ?>" placeholder="Titre ou auteur…" aria-label="Recherche">
+    <?php if ($categorie !== ''): ?><input type="hidden" name="categorie" value="<?= e($categorie) ?>"><?php endif; ?>
+    <button class="btn btn-accent">Rechercher</button>
+  </form>
+</section>
 
-<form id="search-form" action="<?= $e($this->url('catalogue')) ?>" data-search-url="<?= $e($this->url('catalogue/search')) ?>" method="get" class="row g-2 mb-4" role="search">
-    <div class="col-sm-9 col-md-10">
-        <input type="search" id="search-input" name="q" class="form-control"
-               placeholder="Rechercher par titre ou auteur" value="<?= $e($recherche) ?>" autocomplete="off">
-    </div>
-    <div class="col-sm-3 col-md-2 d-grid">
-        <button type="submit" class="btn btn-primary">Rechercher</button>
-    </div>
-</form>
-
-<div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Titre</th>
-                <th>Auteur</th>
-                <th>Catégorie</th>
-                <th>Année</th>
-                <th>Statut</th>
-            </tr>
-        </thead>
-        <tbody id="catalogue-body">
-            <?php foreach ($livres as $livre): ?>
-                <tr>
-                    <td><?= $e($livre['titre']) ?></td>
-                    <td><?= $e($livre['auteur']) ?></td>
-                    <td><?= $e($livre['categorie']) ?></td>
-                    <td><?= $e($livre['annee']) ?></td>
-                    <td>
-                        <?php if ((int) $livre['disponibles'] > 0): ?>
-                            <span class="badge bg-success">Disponible</span>
-                        <?php else: ?>
-                            <span class="badge bg-danger">Indisponible</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+<div class="chips" aria-label="Catégories">
+  <a class="chip<?= $categorie === '' ? ' active' : '' ?>" href="<?= e(url('catalogue' . ($q !== '' ? '?q=' . urlencode($q) : ''))) ?>">Tout</a>
+  <?php foreach ($categories as $c): ?>
+    <a class="chip<?= $c === $categorie ? ' active' : '' ?>"
+       href="<?= e(url('catalogue?' . http_build_query(array_filter(['q' => $q, 'categorie' => $c])))) ?>"><?= e($c) ?></a>
+  <?php endforeach; ?>
 </div>
 
-<p id="catalogue-empty" class="text-center text-muted py-4<?= empty($livres) ? '' : ' d-none' ?>">
-    Aucun livre ne correspond à votre recherche.
-</p>
+<div class="chips" aria-label="Disponibilité">
+  <a class="chip<?= $dispo ? ' active' : '' ?>"
+     href="<?= e(url('catalogue?' . http_build_query(array_filter(['q' => $q, 'categorie' => $categorie, 'dispo' => $dispo ? null : 1])))) ?>">✅ Disponibles uniquement</a>
+</div>
 
-<script src="<?= $e($this->url('assets/js/catalogue.js')) ?>"></script>
+<div class="section-head">
+  <h2>Livres</h2>
+  <span class="count"><?= e($total) ?> livre<?= $total > 1 ? 's' : '' ?></span>
+</div>
+
+<?php if (!$livres): ?>
+  <div class="empty-state">
+    <div class="big">😕</div>
+    <p>Aucun livre ne correspond à votre recherche.</p>
+    <a class="btn btn-outline-accent" href="<?= e(url('catalogue')) ?>">Réinitialiser</a>
+  </div>
+<?php else: ?>
+  <div class="book-grid">
+    <?php foreach ($livres as $l): $ok = $l['disponibles'] > 0; ?>
+      <article class="book-card">
+        <div class="cover" style="<?= e(cover_style($l['categorie'])) ?>">
+          <span class="cover-cat"><?= e($l['categorie']) ?></span>
+          <span class="cover-initial"><?= e(initial($l['titre'])) ?></span>
+          <span class="status <?= $ok ? 'ok' : 'ko' ?>"><?= $ok ? 'Disponible' : 'Indisponible' ?></span>
+        </div>
+        <div class="book-body">
+          <h3 title="<?= e($l['titre']) ?>"><?= e($l['titre']) ?></h3>
+          <p class="author"><?= e($l['auteur']) ?> · <?= e($l['annee']) ?></p>
+          <p class="stock"><?= $ok ? e($l['disponibles']) . ' exemplaire' . ($l['disponibles'] > 1 ? 's' : '') . ' disponible' . ($l['disponibles'] > 1 ? 's' : '') : 'Tous les exemplaires sont empruntés' ?></p>
+        </div>
+      </article>
+    <?php endforeach; ?>
+  </div>
+<?php endif; ?>
+
+<?= pagination($page, $total, $perPage, 'catalogue', array_filter(['q' => $q])) ?>
+
+<?= pagination($page, $total, $perPage, 'catalogue', array_filter(['q' => $q, 'categorie' => $categorie, 'dispo' => $dispo ? 1 : null])) ?>

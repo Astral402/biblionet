@@ -1,8 +1,6 @@
 .env
-
-.vscode/
-.idea/
+*.log
 .DS_Store
 Thumbs.db
-
-*.log
+.idea/
+.vscode/

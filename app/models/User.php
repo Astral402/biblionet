@@ -4,23 +4,12 @@ class User
 {
     public static function findByEmail(string $email): ?array
     {
-        $stmt = Database::getConnection()->prepare(
-            'SELECT id, nom, email, password FROM users WHERE email = :email LIMIT 1'
-        );
-        $stmt->execute(['email' => $email]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return $user ?: null;
+        return Database::query('SELECT id, nom, email, password FROM users WHERE email = ? LIMIT 1', [$email])
+            ->fetch() ?: null;
     }
 
-    public static function authenticate(string $email, string $motDePasse): ?array
+    public static function all(): array
     {
-        $user = self::findByEmail($email);
-
-        if ($user === null || !password_verify($motDePasse, $user['password'])) {
-            return null;
-        }
-
-        return $user;
+        return Database::query('SELECT id, nom FROM users ORDER BY nom')->fetchAll();
     }
 }

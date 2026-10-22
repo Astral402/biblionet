@@ -3,70 +3,45 @@
 class Router
 {
     private const ROUTES = [
-        ''          => 'CatalogueController',
         'catalogue' => 'CatalogueController',
         'auth'      => 'AuthController',
         'livres'    => 'LivreController',
         'adherents' => 'AdherentController',
         'emprunts'  => 'EmpruntController',
-        'login'     => 'AuthController',
-        'logout'    => 'AuthController',
-    ];
-
-    private const METHODES_ALIAS = [
-        'login'  => 'login',
-        'logout' => 'logout',
+        'dashboard' => 'DashboardController',
     ];
 
     public function dispatch(): void
     {
-        $segments = $this->segments();
+        $segments = request_segments();
 
-        $cle     = strtolower(array_shift($segments) ?? '');
-        $methode = strtolower(array_shift($segments) ?? 'index');
-        $params  = $segments;
+        $name   = strtolower($segments[0] ?? 'catalogue');
+        $action = strtolower($segments[1] ?? 'index');
+        $params = array_slice($segments, 2);
 
-        if (isset(self::METHODES_ALIAS[$cle])) {
-            if ($methode !== 'index' || $params) {
-                $this->notFound();
-                return;
-            }
-
-            $methode = self::METHODES_ALIAS[$cle];
-        }
-
-        if (!isset(self::ROUTES[$cle])) {
+        if (!isset(self::ROUTES[$name]) || !preg_match('/^[a-z]+$/', $action)) {
             $this->notFound();
             return;
         }
 
-        $classe = self::ROUTES[$cle];
+        $class = self::ROUTES[$name];
 
-        if (str_starts_with($methode, '_') || !method_exists($classe, $methode)) {
+        if (!class_exists($class) || !method_exists($class, $action)) {
             $this->notFound();
             return;
         }
 
-        $reflexion = new ReflectionMethod($classe, $methode);
-        if (!$reflexion->isPublic() || $reflexion->getDeclaringClass()->getName() !== $classe || count($params) < $reflexion->getNumberOfRequiredParameters()) {
+        $method = new ReflectionMethod($class, $action);
+
+        if (!$method->isPublic()
+            || $method->getDeclaringClass()->getName() !== $class
+            || count($params) < $method->getNumberOfRequiredParameters()) {
             $this->notFound();
             return;
         }
 
-        call_user_func_array([new $classe(), $methode], $params);
-    }
-
-    private function segments(): array
-    {
-        if (isset($_GET['url'])) {
-            $url = $_GET['url'];
-        } else {
-            $chemin = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
-            $url = substr($chemin, strlen(BASE_URL));
-        }
-
-        $url = trim($url, '/');
-        return $url === '' ? [] : explode('/', $url);
+        $params = array_slice($params, 0, $method->getNumberOfParameters());
+        $method->invokeArgs(new $class(), $params);
     }
 
     private function notFound(): void

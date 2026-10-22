@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS biblionet CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE biblionet;
-
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS emprunts;
@@ -8,6 +5,7 @@ DROP TABLE IF EXISTS adherents;
 DROP TABLE IF EXISTS livres;
 DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
+
 CREATE TABLE users (
     id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
     nom       VARCHAR(100) NOT NULL,
@@ -15,26 +13,28 @@ CREATE TABLE users (
     password  VARCHAR(255) NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE livres (
     id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
     titre           VARCHAR(255) NOT NULL,
     auteur          VARCHAR(150) NOT NULL,
-    categorie       VARCHAR(100)  NOT NULL,
-    annee           SMALLINT UNSIGNED NULL,
+    categorie       VARCHAR(100) NOT NULL,
+    annee           SMALLINT UNSIGNED NOT NULL,
     nb_exemplaires  INT NOT NULL DEFAULT 1,
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    PRIMARY KEY (id),
+    KEY idx_livres_titre (titre),
+    KEY idx_livres_auteur (auteur)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE adherents (
     id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nom        VARCHAR(80)  NOT NULL,
-    prenom     VARCHAR(80)  NOT NULL,
-    classe     VARCHAR(50)  NOT NULL,
-    telephone  VARCHAR(30)  NULL,
+    nom        VARCHAR(80) NOT NULL,
+    prenom     VARCHAR(80) NOT NULL,
+    classe     VARCHAR(50) NOT NULL,
+    telephone  VARCHAR(30) NULL,
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE emprunts (
     id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -42,12 +42,22 @@ CREATE TABLE emprunts (
     adherent_id   INT UNSIGNED NOT NULL,
     date_emprunt  DATE NOT NULL,
     date_retour   DATE NULL DEFAULT NULL,
+    user_id         INT UNSIGNED NULL DEFAULT NULL,
+    retour_user_id  INT UNSIGNED NULL DEFAULT NULL,
     PRIMARY KEY (id),
+    KEY idx_emprunts_retour (date_retour),
     CONSTRAINT fk_emprunts_livre    FOREIGN KEY (livre_id)    REFERENCES livres (id),
-    CONSTRAINT fk_emprunts_adherent FOREIGN KEY (adherent_id) REFERENCES adherents (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    CONSTRAINT fk_emprunts_adherent FOREIGN KEY (adherent_id) REFERENCES adherents (id),
+    CONSTRAINT fk_emprunts_user     FOREIGN KEY (user_id)        REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT fk_emprunts_retour   FOREIGN KEY (retour_user_id) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO users (nom, email, password) VALUES
-('Bibliothécaire INPTIC', 'bibliothecaire@inptic.ga', '$2y$10$eNFoNyTlGZwz2mBMB5ew5.cnH7bFu1UJj5RrRowX/HsdchA4U2CI.');
+('Bibliothécaire INPTIC', 'bibliothecaire@inptic.ga', '$2y$10$eNFoNyTlGZwz2mBMB5ew5.cnH7bFu1UJj5RrRowX/HsdchA4U2CI.'),
+('Robert', 'robert@inptic.ga', '$2y$10$4tYatYGXVwZsTLgtjKSlJ.PDqF8YjzvN4i0uexbA/fHtGfE4H0u5u'),
+('André', 'andre@inptic.ga', '$2y$10$w3s9mkC3s26NUTl8w55Ftu8B4nBL6ns94Tn5NjseYg0kNLQv4nv3W'),
+('Khadi', 'khadi@inptic.ga', '$2y$10$WjKxrB3vFj78BdGG4fOu4OQvqSTginXLOtJTzPjUN/MM2eQ3AMGIO');
+
 INSERT INTO livres (titre, auteur, categorie, annee, nb_exemplaires) VALUES
 ('Le Petit Prince', 'Antoine de Saint-Exupéry', 'Roman', 1943, 3),
 ('L''Étranger', 'Albert Camus', 'Roman', 1942, 2),
@@ -69,6 +79,7 @@ INSERT INTO livres (titre, auteur, categorie, annee, nb_exemplaires) VALUES
 ('JavaScript: The Good Parts', 'Douglas Crockford', 'Informatique', 2008, 2),
 ('Réseaux', 'Andrew S. Tanenbaum', 'Réseaux', 2011, 2),
 ('Systèmes d''exploitation', 'Andrew S. Tanenbaum', 'Informatique', 2008, 1);
+
 INSERT INTO adherents (nom, prenom, classe, telephone) VALUES
 ('Mba', 'Ella', 'L1 GI', '+241 06 00 00 01'),
 ('Obiang', 'Brice', 'L1 GI', '+241 06 00 00 02'),
@@ -82,13 +93,15 @@ INSERT INTO adherents (nom, prenom, classe, telephone) VALUES
 ('Mouketou', 'Merveille', 'L2 GI', '+241 06 00 00 10'),
 ('Ngoua', 'Landry', 'L1 GI', '+241 06 00 00 11'),
 ('Ndouna', 'Jordan', 'L3 GI', '+241 06 00 00 12');
-INSERT INTO emprunts (livre_id, adherent_id, date_emprunt, date_retour) VALUES
-(15,  3, DATE_SUB(CURDATE(), INTERVAL 20 DAY), NULL),
-( 1,  1, DATE_SUB(CURDATE(), INTERVAL 5 DAY),  NULL),
-( 8,  6, DATE_SUB(CURDATE(), INTERVAL 3 DAY),  NULL),
-(19,  9, DATE_SUB(CURDATE(), INTERVAL 2 DAY),  NULL),
-(17, 10, DATE_SUB(CURDATE(), INTERVAL 1 DAY),  NULL),
-( 2,  2, DATE_SUB(CURDATE(), INTERVAL 40 DAY), DATE_SUB(CURDATE(), INTERVAL 30 DAY)),
-( 9,  4, DATE_SUB(CURDATE(), INTERVAL 35 DAY), DATE_SUB(CURDATE(), INTERVAL 25 DAY)),
-(12,  5, DATE_SUB(CURDATE(), INTERVAL 28 DAY), DATE_SUB(CURDATE(), INTERVAL 18 DAY)),
-(16,  7, DATE_SUB(CURDATE(), INTERVAL 22 DAY), DATE_SUB(CURDATE(), INTERVAL 12 DAY));
+
+INSERT INTO emprunts (livre_id, adherent_id, date_emprunt, date_retour, user_id, retour_user_id) VALUES
+(15, 3,  CURDATE() - INTERVAL 20 DAY, NULL, 2, NULL),
+(5,  2,  CURDATE() - INTERVAL 16 DAY, NULL, 3, NULL),
+(1,  1,  CURDATE() - INTERVAL 5 DAY,  NULL, 4, NULL),
+(8,  6,  CURDATE() - INTERVAL 3 DAY,  NULL, 1, NULL),
+(19, 9,  CURDATE() - INTERVAL 2 DAY,  NULL, 2, NULL),
+(17, 10, CURDATE() - INTERVAL 1 DAY,  NULL, 3, NULL),
+(2,  2,  CURDATE() - INTERVAL 40 DAY, CURDATE() - INTERVAL 30 DAY, 1, 4),
+(9,  4,  CURDATE() - INTERVAL 35 DAY, CURDATE() - INTERVAL 25 DAY, 4, 1),
+(12, 5,  CURDATE() - INTERVAL 28 DAY, CURDATE() - INTERVAL 18 DAY, 2, 3),
+(16, 7,  CURDATE() - INTERVAL 22 DAY, CURDATE() - INTERVAL 12 DAY, 3, 2);

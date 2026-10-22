@@ -2,85 +2,98 @@
 
 class AdherentController extends Controller
 {
+    public function __construct()
+    {
+        $this->requireAuth();
+    }
+
     public function index(): void
     {
-        $this->requireLogin();
+        $page = $this->page();
 
         $this->render('adherents/index', [
-            'titre' => 'Gestion des adhérents',
-            'adherents' => Adherent::all(),
-            'flash' => $this->pullFlash(),
+            'title'     => 'Adhérents',
+            'page'      => $page,
+            'adherents' => Adherent::page($page),
+            'total'     => Adherent::count(),
+            'perPage'   => Adherent::perPage(),
+        ]);
+    }
+
+    public function show(string $id = ''): void
+    {
+        $adherent = $this->findOrLeave((int) $id);
+        $emprunts = Emprunt::parAdherent((int) $adherent['id']);
+
+        $enCours = array_filter($emprunts, fn($m) => $m['date_retour'] === null);
+        $retards = array_filter($enCours, fn($m) => $m['jours'] > Emprunt::JOURS_MAX);
+
+        $this->render('adherents/show', [
+            'title'    => 'Fiche adhérent',
+            'adherent' => $adherent,
+            'emprunts' => $emprunts,
+            'enCours'  => count($enCours),
+            'retards'  => count($retards),
         ]);
     }
 
     public function create(): void
     {
-        $this->requireLogin();
-
-        $this->showForm('Ajouter un adhérent', '/adherents/store', $this->emptyAdherent(), []);
+        $this->showForm('Ajouter un adhérent', 'adherents/store', [], []);
     }
 
     public function store(): void
     {
-        $this->requireLogin();
-        $this->requirePost('/adherents');
-
-        $data = $this->input();
-        $errors = $this->validate($data);
+        $this->requirePost();
+        [$data, $errors] = Adherent::validate($_POST);
 
         if ($errors) {
-            $this->showForm('Ajouter un adhérent', '/adherents/store', $data, $errors);
+            $this->showForm('Ajouter un adhérent', 'adherents/store', $data, $errors);
             return;
         }
 
         Adherent::create($data);
-        $this->flash('success', 'L’adhérent a été ajouté.');
-        $this->to('/adherents');
+        $this->flash('success', "L'adhérent a été ajouté.");
+        $this->redirect('adherents');
     }
 
-    public function edit($id = 0): void
+    public function edit(string $id = ''): void
     {
-        $this->requireLogin();
-
         $adherent = $this->findOrLeave((int) $id);
-
-        $this->showForm('Modifier un adhérent', '/adherents/update/' . $adherent['id'], $adherent, []);
+        $this->showForm("Modifier l'adhérent", 'adherents/update/' . $adherent['id'], $adherent, []);
     }
 
-    public function update($id = 0): void
+    public function update(string $id = ''): void
     {
-        $this->requireLogin();
-        $this->requirePost('/adherents');
+        $this->requirePost();
 
         $adherent = $this->findOrLeave((int) $id);
-        $data = $this->input();
-        $errors = $this->validate($data);
+        [$data, $errors] = Adherent::validate($_POST);
 
         if ($errors) {
-            $this->showForm('Modifier un adhérent', '/adherents/update/' . $adherent['id'], $data, $errors);
+            $this->showForm("Modifier l'adhérent", 'adherents/update/' . $adherent['id'], $data, $errors);
             return;
         }
 
         Adherent::update((int) $adherent['id'], $data);
-        $this->flash('success', 'L’adhérent a été modifié.');
-        $this->to('/adherents');
+        $this->flash('success', "L'adhérent a été modifié.");
+        $this->redirect('adherents');
     }
 
-    public function delete($id = 0): void
+    public function delete(string $id = ''): void
     {
-        $this->requireLogin();
-        $this->requirePost('/adherents');
+        $this->requirePost();
 
         $adherent = $this->findOrLeave((int) $id);
 
         if (Adherent::totalEmprunts((int) $adherent['id']) > 0) {
-            $this->flash('danger', 'Suppression impossible : cet adhérent possède un historique d’emprunts.');
-            $this->to('/adherents');
+            $this->flash('danger', "Suppression impossible : cet adhérent a un historique d'emprunts.");
+        } else {
+            Adherent::delete((int) $adherent['id']);
+            $this->flash('success', "L'adhérent a été supprimé.");
         }
 
-        Adherent::delete((int) $adherent['id']);
-        $this->flash('success', 'L’adhérent a été supprimé.');
-        $this->to('/adherents');
+        $this->redirect('adherents');
     }
 
     private function findOrLeave(int $id): array
@@ -89,63 +102,19 @@ class AdherentController extends Controller
 
         if ($adherent === null) {
             $this->flash('danger', 'Adhérent introuvable.');
-            $this->to('/adherents');
+            $this->redirect('adherents');
         }
 
         return $adherent;
     }
 
-    private function emptyAdherent(): array
-    {
-        return ['nom' => '', 'prenom' => '', 'classe' => '', 'telephone' => ''];
-    }
-
-    private function input(): array
-    {
-        return [
-            'nom' => trim($_POST['nom'] ?? ''),
-            'prenom' => trim($_POST['prenom'] ?? ''),
-            'classe' => trim($_POST['classe'] ?? ''),
-            'telephone' => trim($_POST['telephone'] ?? ''),
-        ];
-    }
-
-    private function validate(array $data): array
-    {
-        $errors = [];
-
-        if ($data['nom'] === '') {
-            $errors['nom'] = 'Le nom est obligatoire.';
-        } elseif (mb_strlen($data['nom']) > 80) {
-            $errors['nom'] = 'Le nom ne doit pas dépasser 80 caractères.';
-        }
-
-        if ($data['prenom'] === '') {
-            $errors['prenom'] = 'Le prénom est obligatoire.';
-        } elseif (mb_strlen($data['prenom']) > 80) {
-            $errors['prenom'] = 'Le prénom ne doit pas dépasser 80 caractères.';
-        }
-
-        if ($data['classe'] === '') {
-            $errors['classe'] = 'La classe est obligatoire.';
-        } elseif (mb_strlen($data['classe']) > 50) {
-            $errors['classe'] = 'La classe ne doit pas dépasser 50 caractères.';
-        }
-
-        if ($data['telephone'] !== '' && !preg_match('/^\+?[0-9][0-9 .\-()]{5,29}$/', $data['telephone'])) {
-            $errors['telephone'] = 'Numéro de téléphone invalide (chiffres, espaces et + uniquement).';
-        }
-
-        return $errors;
-    }
-
-    private function showForm(string $titre, string $action, array $adherent, array $errors): void
+    private function showForm(string $title, string $action, array $adherent, array $errors): void
     {
         $this->render('adherents/form', [
-            'titre' => $titre,
-            'action' => $action,
+            'title'    => $title,
+            'action'   => $action,
             'adherent' => $adherent,
-            'errors' => $errors,
+            'errors'   => $errors,
         ]);
     }
 }

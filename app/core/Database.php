@@ -10,11 +10,6 @@ class Database
         self::$config = $config;
     }
 
-    public static function getConnection(): PDO
-    {
-        return self::pdo();
-    }
-
     public static function pdo(): PDO
     {
         if (self::$pdo === null) {
@@ -35,6 +30,7 @@ class Database
     {
         $stmt = self::pdo()->prepare($sql);
         $stmt->execute($params);
+
         return $stmt;
     }
 }

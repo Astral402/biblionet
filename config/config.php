@@ -1,33 +1,33 @@
 <?php
 
-function charger_env(string $fichier): array
+function loadEnv(string $path): array
 {
-    $variables = [];
+    $vars = [];
 
-    if (!is_readable($fichier)) {
-        return $variables;
+    if (!is_readable($path)) {
+        return $vars;
     }
 
-    foreach (file($fichier, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $ligne) {
-        $ligne = trim($ligne);
+    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
 
-        if ($ligne === '' || $ligne[0] === '#' || !str_contains($ligne, '=')) {
+        if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) {
             continue;
         }
 
-        [$cle, $valeur] = explode('=', $ligne, 2);
-        $variables[trim($cle)] = trim($valeur, " \t\"'");
+        [$key, $value] = explode('=', $line, 2);
+        $vars[trim($key)] = trim($value, " \t\"'");
     }
 
-    return $variables;
+    return $vars;
 }
 
-$env = charger_env(dirname(__DIR__) . '/.env');
+$env = loadEnv(__DIR__ . '/../.env');
 
 return [
-    'app_env' => $env['APP_ENV'] ?? 'production',
-    'app_url' => $env['APP_URL'] ?? '',
-    'db' => [
+    'env' => $env['APP_ENV'] ?? 'production',
+    'url' => $env['APP_URL'] ?? '',
+    'db'  => [
         'host' => $env['DB_HOST'] ?? 'localhost',
         'name' => $env['DB_NAME'] ?? 'biblionet',
         'user' => $env['DB_USER'] ?? 'root',

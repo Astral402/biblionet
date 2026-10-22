@@ -1,87 +1,123 @@
 # BiblioNet — Bibliothèque de l'INPTIC
 
-Application web de gestion d'une bibliothèque (livres, adhérents, emprunts) en
-**PHP 8 orienté objet, architecture MVC, sans framework**, avec MySQL/MariaDB (PDO).
+Application web de gestion d'une bibliothèque (livres, adhérents, emprunts) en **PHP 8 orienté objet,
+architecture MVC, sans framework**, avec MySQL/MariaDB via PDO.
 
 Mini-projet — Module Développement web (PHP / MySQL) — Enseignant : Charly OBAME.
 
-## État d'avancement
+## Avancement
 
 | Jour | Contenu | État |
 |------|---------|------|
-| J1 | Socle MVC (Router, Database, Controller, layout), base + données de test, page d'accueil | ✅ |
+| J1 | Analyse, base de données + données de test, socle MVC (Router, Database, Controller, layout), page d'accueil | ✅ |
 | J2 | Authentification, CRUD livres, CRUD adhérents | ✅ |
-| J3 | Catalogue + recherche ✅ (fait en avance), emprunts/retours ⏳, mise en ligne ⏳ | ⏳ |
-| J4 | Finalisation, rapport, soutenance | ⏳ |
+| J3 | Catalogue public avec recherche, emprunts et retours, préparation de la mise en ligne | ✅ |
+| J4 | Bonus, tests complets, README, rapport, soutenance | ✅ |
 
 ## Installation locale
 
-**Prérequis** : PHP 8.x (extensions `pdo_mysql` et `mbstring`), MySQL ou MariaDB (XAMPP / WAMP / Laragon conviennent).
+**Prérequis** : PHP 8.x (extensions `pdo_mysql` et `mbstring`), MySQL ou MariaDB (XAMPP, WAMP ou Laragon conviennent).
 
-1. **Cloner le dépôt**
+1. Cloner le dépôt puis copier la configuration :
    ```bash
    git clone <url-du-depot> biblionet
    cd biblionet
-   ```
-2. **Créer la base** : importer `database/biblionet.sql` (phpMyAdmin, ou en ligne de commande) :
-   ```bash
-   mysql -u root -p < database/biblionet.sql
-   ```
-3. **Configurer l'environnement** : copier `.env.example` en `.env` puis adapter
-   `DB_USER` / `DB_PASS` à votre installation locale.
-   ```bash
    cp .env.example .env
    ```
-4. **Lancer l'application** avec le serveur intégré de PHP :
+   Adapter `DB_USER` et `DB_PASS` dans `.env` à votre installation.
+2. Créer la base et importer le script :
+   ```bash
+   mysql -u root -p -e "CREATE DATABASE biblionet CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+   mysql -u root -p biblionet < database/biblionet.sql
+   ```
+   Avec phpMyAdmin : créer la base `biblionet`, la sélectionner, puis importer `database/biblionet.sql`.
+3. Lancer le serveur intégré de PHP :
    ```bash
    php -S localhost:8000 -t public public/index.php
    ```
    puis ouvrir <http://localhost:8000>.
 
-   Avec Apache (XAMPP/WAMP), placer le projet dans `htdocs`/`www` et ouvrir
-   `http://localhost/biblionet/public/` (`mod_rewrite` activé).
+   Avec Apache (XAMPP/WAMP) : placer le dossier dans `htdocs` ou `www` et ouvrir `http://localhost/biblionet/public/`
+   (`mod_rewrite` activé).
 
 ## Compte de démonstration
 
 - Email : `bibliothecaire@inptic.ga`
 - Mot de passe : `Biblio@2026`
 
+## Fonctionnalités
+
+- **Visiteur** : consultation du catalogue avec la mention « Disponible / Indisponible ».
+- **Visiteur** : recherche d'un livre par titre ou auteur, avec pagination.
+- **Bibliothécaire** (connexion par session, mot de passe haché) : CRUD des livres et des adhérents.
+- **Emprunts** : enregistrement d'un emprunt et du retour, refus automatique si aucun exemplaire n'est disponible, liste des emprunts en cours.
+- **Bonus** : tableau de bord chiffré, liste des retards (plus de 14 jours), filtres du catalogue, export CSV des emprunts, jeton CSRF, pagination.
+- **Comptes multiples** : 4 comptes bibliothécaires. Chaque emprunt et chaque retour mémorise le bibliothécaire connecté.
+- **Historique des emprunts** : recherche par adhérent, livre, période, statut ou bibliothécaire, avec export CSV des résultats.
+- **Fiche adhérent** : tous les emprunts d'un adhérent, retards en rouge.
+- **Limite d'emprunts** : un adhérent ne peut pas avoir plus de 3 livres non rendus.
+- **Fiche de prêt imprimable** avec date limite de retour et signatures.
+- **Sécurité de la connexion** : après 5 échecs, nouvelle tentative possible au bout de 30 secondes.
+
+Règle métier : `exemplaires disponibles = nb_exemplaires − emprunts dont date_retour est NULL`.
+
 ## Routes
 
 | URL | Accès | Rôle |
 |-----|-------|------|
-| `/` et `/catalogue` | public | Catalogue, recherche par titre ou auteur (`/catalogue/search?q=` en JSON) |
-| `/login`, `/logout` | public | Connexion / déconnexion du bibliothécaire |
+| `/` et `/catalogue` | public | Catalogue |
+| `/auth/login`, `/auth/logout` | public | Connexion et déconnexion |
 | `/livres`, `/livres/create`, `/livres/edit/{id}` | connecté | CRUD des livres |
 | `/adherents`, `/adherents/create`, `/adherents/edit/{id}` | connecté | CRUD des adhérents |
-| `/emprunts` | connecté | À développer (J3) |
+| `/emprunts`, `/emprunts/create` | connecté | Emprunts en cours, nouvel emprunt |
+| `/emprunts/retards`, `/emprunts/historique`, `/emprunts/export` | connecté | Retards, historique filtrable, export CSV |
+| `/emprunts/fiche/{id}` | connecté | Fiche de prêt imprimable |
+| `/adherents/show/{id}` | connecté | Fiche d'un adhérent et historique de ses emprunts |
+| `/dashboard` | connecté | Tableau de bord |
 
 ## Architecture
 
 ```
 biblionet/
 ├── app/
-│   ├── controllers/   AuthController, LivreController, AdherentController,
-│   │                  EmpruntController, CatalogueController
-│   ├── models/        User, Livre, Adherent, Emprunt
-│   ├── views/         layouts/main.php, auth/, livres/, adherents/, emprunts/, catalogue/
-│   └── core/          Router, Controller, Database
+│   ├── controllers/   Catalogue
+│   ├── controllers/   + Auth, Livre, Adherent
+│   ├── controllers/   + Emprunt
+│   ├── controllers/   + Dashboard
+│   ├── models/        Livre
+│   ├── models/        + User, Adherent
+│   ├── models/        + Emprunt
+│   ├── views/         layouts/main.php, catalogue/
+│   ├── views/         + auth/, livres/, adherents/
+│   ├── views/         + emprunts/
+│   ├── views/         + dashboard/
+│   └── core/          Router, Controller, Database, helpers
 ├── config/config.php  paramètres lus depuis .env
-├── public/            SEUL dossier exposé au web (index.php = front controller)
+├── public/            seul dossier exposé au web (index.php, .htaccess, assets/)
 ├── database/          biblionet.sql (création + données de test)
 ├── .env.example
 └── .gitignore         (exclut .env)
 ```
 
-Flux d'une requête : `/livres` → `.htaccess` → `public/index.php` → `Router`
-→ `LivreController::index()` → `Livre::all()` → vue `views/livres/index.php`.
+Flux d'une requête : `/livres` → `.htaccess` → `public/index.php` → `Router` → `LivreController::index()`
+→ `Livre::search()` → vue `views/livres/index.php`.
 
 ## Règles du projet
 
 - Aucune requête SQL dans les vues, aucun HTML dans les modèles.
-- Requêtes PDO préparées uniquement.
-- Toute donnée affichée est échappée (`$this->e()` = `htmlspecialchars`).
-- Le fichier `.env` n'est **jamais** versionné.
+- Accès à la base uniquement par PDO et requêtes préparées.
+- Toute donnée affichée est échappée avec `e()` (`htmlspecialchars`).
+- Le fichier `.env` n'est jamais versionné.
+
+
+## Mise en ligne (hébergement mutualisé)
+
+1. Créer la base et l'utilisateur MySQL depuis le panneau d'hébergement.
+2. Importer `database/biblionet.sql` via phpMyAdmin, la base étant sélectionnée.
+3. Transférer le projet (FTP avec FileZilla, ou `git clone` si SSH).
+4. Faire pointer la racine du site vers `public/`. Sinon, le `.htaccess` placé à la racine redirige vers `public/`.
+5. Créer `.env` sur le serveur avec `APP_ENV=production` et les identifiants de production.
+6. Tester toutes les fonctionnalités en ligne avec le compte de démonstration.
 
 ## Équipe
 

@@ -4,21 +4,32 @@ class CatalogueController extends Controller
 {
     public function index(): void
     {
-        $recherche = trim($_GET['q'] ?? '');
+        $q = get_string('q');
+        $page = $this->page();
 
         $this->render('catalogue/index', [
-            'titre' => 'Catalogue',
-            'recherche' => $recherche,
-            'livres' => Livre::search($recherche),
+            'title'   => 'Catalogue',
+            'q'       => $q,
+            'page'    => $page,
+            'livres'  => Livre::search($q, $page),
+            'total'   => Livre::count($q),
+            'perPage' => Livre::perPage(),
         ]);
-    }
+        $q = get_string('q');
+        $categorie = get_string('categorie');
+        $dispo = isset($_GET['dispo']);
+        $page = $this->page();
 
-    public function search(): void
-    {
-        $recherche = trim($_GET['q'] ?? '');
-
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(Livre::search($recherche), JSON_UNESCAPED_UNICODE);
-        exit;
+        $this->render('catalogue/index', [
+            'title'      => 'Catalogue',
+            'q'          => $q,
+            'page'       => $page,
+            'categorie'  => $categorie,
+            'dispo'      => $dispo,
+            'categories' => Livre::categories(),
+            'livres'     => Livre::search($q, $page, $categorie, $dispo),
+            'total'      => Livre::count($q, $categorie, $dispo),
+            'perPage'    => Livre::perPage(),
+        ]);
     }
 }

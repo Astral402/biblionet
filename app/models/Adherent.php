@@ -2,79 +2,97 @@
 
 class Adherent
 {
-    public static function all(): array
-    {
-        $stmt = Database::getConnection()->prepare(
-            'SELECT id, nom, prenom, classe, telephone FROM adherents ORDER BY nom ASC, prenom ASC'
-        );
-        $stmt->execute();
+    private const PER_PAGE = 10;
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public static function perPage(): int
+    {
+        return self::PER_PAGE;
     }
 
-    public static function find(int $id): ?array
+    public static function page(int $page = 1): array
     {
-        $stmt = Database::getConnection()->prepare(
-            'SELECT id, nom, prenom, classe, telephone FROM adherents WHERE id = :id'
-        );
-        $stmt->execute(['id' => $id]);
-        $adherent = $stmt->fetch(PDO::FETCH_ASSOC);
+        $offset = max(0, ($page - 1)) * self::PER_PAGE;
 
-        return $adherent ?: null;
-    }
-
-    public static function create(array $data): int
-    {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare(
-            'INSERT INTO adherents (nom, prenom, classe, telephone)
-             VALUES (:nom, :prenom, :classe, :telephone)'
-        );
-        $stmt->execute(self::params($data));
-
-        return (int) $pdo->lastInsertId();
-    }
-
-    public static function update(int $id, array $data): bool
-    {
-        $stmt = Database::getConnection()->prepare(
-            'UPDATE adherents
-             SET nom = :nom, prenom = :prenom, classe = :classe, telephone = :telephone
-             WHERE id = :id'
-        );
-
-        return $stmt->execute(self::params($data) + ['id' => $id]);
-    }
-
-    public static function delete(int $id): bool
-    {
-        $stmt = Database::getConnection()->prepare('DELETE FROM adherents WHERE id = :id');
-
-        return $stmt->execute(['id' => $id]);
-    }
-
-    public static function totalEmprunts(int $id): int
-    {
-        $stmt = Database::getConnection()->prepare(
-            'SELECT COUNT(*) FROM emprunts WHERE adherent_id = :id'
-        );
-        $stmt->execute(['id' => $id]);
-
-        return (int) $stmt->fetchColumn();
+        return Database::query(
+            'SELECT * FROM adherents ORDER BY nom, prenom LIMIT ' . self::PER_PAGE . ' OFFSET ' . $offset
+        )->fetchAll();
     }
 
     public static function count(): int
     {
-        return (int) Database::getConnection()->query('SELECT COUNT(*) FROM adherents')->fetchColumn();
+        return (int) Database::query('SELECT COUNT(*) FROM adherents')->fetchColumn();
     }
 
-    private static function params(array $data): array
+    public static function all(): array
     {
-        return [
-            'nom' => $data['nom'],
-            'prenom' => $data['prenom'],
-            'classe' => $data['classe'],
-            'telephone' => $data['telephone'] === '' ? null : $data['telephone'],
+        return Database::query('SELECT * FROM adherents ORDER BY nom, prenom')->fetchAll();
+    }
+
+    public static function find(int $id): ?array
+    {
+        return Database::query('SELECT * FROM adherents WHERE id = ?', [$id])->fetch() ?: null;
+    }
+
+    public static function create(array $d): int
+    {
+        Database::query(
+            'INSERT INTO adherents (nom, prenom, classe, telephone) VALUES (?, ?, ?, ?)',
+            [$d['nom'], $d['prenom'], $d['classe'], $d['telephone'] === '' ? null : $d['telephone']]
+        );
+
+        return (int) Database::pdo()->lastInsertId();
+    }
+
+    public static function update(int $id, array $d): void
+    {
+        Database::query(
+            'UPDATE adherents SET nom = ?, prenom = ?, classe = ?, telephone = ? WHERE id = ?',
+            [$d['nom'], $d['prenom'], $d['classe'], $d['telephone'] === '' ? null : $d['telephone'], $id]
+        );
+    }
+
+    public static function delete(int $id): void
+    {
+        Database::query('DELETE FROM adherents WHERE id = ?', [$id]);
+    }
+
+    public static function totalEmprunts(int $id): int
+    {
+        return (int) Database::query('SELECT COUNT(*) FROM emprunts WHERE adherent_id = ?', [$id])->fetchColumn();
+    }
+
+    public static function validate(array $input): array
+    {
+        $d = [
+            'nom'       => field($input, 'nom'),
+            'prenom'    => field($input, 'prenom'),
+            'classe'    => field($input, 'classe'),
+            'telephone' => field($input, 'telephone'),
         ];
+        $errors = [];
+
+        if ($d['nom'] === '') {
+            $errors[] = 'Le nom est obligatoire.';
+        } elseif (mb_strlen($d['nom']) > 80) {
+            $errors[] = 'Le nom ne doit pas dépasser 80 caractères.';
+        }
+
+        if ($d['prenom'] === '') {
+            $errors[] = 'Le prénom est obligatoire.';
+        } elseif (mb_strlen($d['prenom']) > 80) {
+            $errors[] = 'Le prénom ne doit pas dépasser 80 caractères.';
+        }
+
+        if ($d['classe'] === '') {
+            $errors[] = 'La classe est obligatoire.';
+        } elseif (mb_strlen($d['classe']) > 50) {
+            $errors[] = 'La classe ne doit pas dépasser 50 caractères.';
+        }
+
+        if ($d['telephone'] !== '' && !preg_match('/^\+?[0-9][0-9 .\-()]{5,29}$/', $d['telephone'])) {
+            $errors[] = 'Le numéro de téléphone est invalide.';
+        }
+
+        return [$d, $errors];
     }
 }
