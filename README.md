@@ -45,6 +45,8 @@ Mini-projet — Module Développement web (PHP / MySQL) — Enseignant : Charly 
 - Email : `bibliothecaire@inptic.ga`
 - Mot de passe : `Biblio@2026`
 
+Trois autres comptes bibliothécaires existent (Robert, André, Khadi, adresses du type `prenom@inptic.ga`). Leurs mots de passe ne sont pas publiés dans le dépôt.
+
 ## Fonctionnalités
 
 - **Visiteur** : consultation du catalogue avec la mention « Disponible / Indisponible ».
@@ -80,17 +82,10 @@ Règle métier : `exemplaires disponibles = nb_exemplaires − emprunts dont dat
 ```
 biblionet/
 ├── app/
-│   ├── controllers/   Catalogue
-│   ├── controllers/   + Auth, Livre, Adherent
-│   ├── controllers/   + Emprunt
-│   ├── controllers/   + Dashboard
-│   ├── models/        Livre
-│   ├── models/        + User, Adherent
-│   ├── models/        + Emprunt
-│   ├── views/         layouts/main.php, catalogue/
-│   ├── views/         + auth/, livres/, adherents/
-│   ├── views/         + emprunts/
-│   ├── views/         + dashboard/
+│   ├── controllers/   Catalogue, Auth, Livre, Adherent, Emprunt, Dashboard
+│   ├── models/        Livre, User, Adherent, Emprunt
+│   ├── views/         layouts/main.php, catalogue/, auth/, livres/, adherents/,
+│   │                  emprunts/, dashboard/
 │   └── core/          Router, Controller, Database, helpers
 ├── config/config.php  paramètres lus depuis .env
 ├── public/            seul dossier exposé au web (index.php, .htaccess, assets/)
@@ -119,10 +114,12 @@ Flux d'une requête : `/livres` → `.htaccess` → `public/index.php` → `Rout
 5. Créer `.env` sur le serveur avec `APP_ENV=production` et les identifiants de production.
 6. Tester toutes les fonctionnalités en ligne avec le compte de démonstration.
 
-## Équipe
+## Équipe — Groupe 4
 
-| Membre | Responsabilités |
-|--------|-----------------|
-| Membre 1 | Socle, authentification, GitHub, mise en ligne |
-| Membre 2 | Livres (CRUD) et catalogue public |
-| Membre 3 | Adhérents, emprunts, script SQL et données de test |
+| Rôle | Membre(s) | Responsabilités |
+|------|-----------|-----------------|
+| Membre 1 — Socle et déploiement | Emmanuel (chef de groupe), Robert | Arborescence, Database (PDO), Router, Controller de base, layout, authentification, dépôt GitHub, mise en ligne |
+| Membre 2 — Livres et catalogue | André | Modèle, contrôleur et vues des livres (CRUD), catalogue public avec recherche et disponibilité |
+| Membre 3 — Adhérents et emprunts | Khadi | CRUD des adhérents, emprunts et retours, règle de disponibilité, script SQL et données de test |
+
+Chaque membre commite son propre travail sur le dépôt : l'historique Git (`git log`, onglet *Commits* sur GitHub) montre qui a fait quoi.

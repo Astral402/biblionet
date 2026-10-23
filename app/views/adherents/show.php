@@ -26,7 +26,7 @@
 <div class="panel p-0"><div class="table-responsive">
 <table class="table table-dark-custom align-middle mb-0">
   <thead>
-    <tr><th>Livre</th><th>Emprunté le</th><th>Retourné le</th><th>Statut</th><th class="text-end">Fiche</th></tr>
+    <tr><th>Livre</th><th>Emprunté le</th><th>Retourné le</th><th>Statut</th><th>Emprunt enregistré par</th><th>Retour enregistré par</th><th class="text-end">Fiche</th></tr>
   </thead>
   <tbody>
   <?php foreach ($emprunts as $m): ?>
@@ -40,10 +40,12 @@
         <?php elseif ($late): ?><span class="badge-soft ko">Retard · <?= e($m['jours']) ?> j</span>
         <?php else: ?><span class="tag">En cours · <?= e($m['jours']) ?> j</span><?php endif; ?>
       </td>
+      <td><?= e($m['emprunte_par'] ?? '—') ?></td>
+      <td><?= $rendu ? e($m['retour_par'] ?? '—') : '—' ?></td>
       <td class="text-end"><a class="btn btn-sm btn-ghost" href="<?= e(url('emprunts/fiche/' . $m['id'])) ?>">Fiche</a></td>
     </tr>
   <?php endforeach; ?>
-  <?php if (!$emprunts): ?><tr><td colspan="5" class="text-center text-muted py-4">Cet adhérent n'a encore rien emprunté.</td></tr><?php endif; ?>
+  <?php if (!$emprunts): ?><tr><td colspan="7" class="text-center text-muted py-4">Cet adhérent n'a encore rien emprunté.</td></tr><?php endif; ?>
   </tbody>
 </table>
 </div></div>
